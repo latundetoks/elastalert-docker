@@ -1,28 +1,13 @@
-# Copyright 2015-2017 Ivan Krizsan
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Elastalert Docker image running on Alpine Linux.
+# Elastalert Docker image running on Centos Linux.
 # Build image with: docker build -t ivankrizsan/elastalert:latest .
 
-FROM alpine
+FROM centos:latest
 
-LABEL maintainer="Ivan Krizsan, https://github.com/krizsan"
 
 # Set this environment variable to True to set timezone on container start.
 ENV SET_CONTAINER_TIMEZONE False
 # Default container timezone as found under the directory /usr/share/zoneinfo/.
-ENV CONTAINER_TIMEZONE Europe/Stockholm
+ENV CONTAINER_TIMEZONE America/Montreal
 # URL from which to download Elastalert.
 ENV ELASTALERT_URL https://github.com/Yelp/elastalert/archive/master.zip
 # Directory holding configuration for Elastalert and Supervisor.
@@ -38,7 +23,7 @@ ENV ELASTALERT_HOME /opt/elastalert
 # Supervisor configuration file for Elastalert.
 ENV ELASTALERT_SUPERVISOR_CONF ${CONFIG_DIR}/elastalert_supervisord.conf
 # Alias, DNS or IP of Elasticsearch host to be queried by Elastalert. Set in default Elasticsearch configuration file.
-ENV ELASTICSEARCH_HOST elasticsearchhost
+ENV ELASTICSEARCH_HOST 172.25.218.42
 # Port on above Elasticsearch host. Set in default Elasticsearch configuration file.
 ENV ELASTICSEARCH_PORT 9200
 # Use TLS to connect to Elasticsearch (True or False)
@@ -50,10 +35,11 @@ ENV ELASTALERT_INDEX elastalert_status
 
 WORKDIR /opt
 
-# Install software required for Elastalert and NTP for time synchronization.
-RUN apk update && \
-    apk upgrade && \
-    apk add ca-certificates openssl-dev openssl libffi-dev python2 python2-dev py2-pip py2-yaml gcc musl-dev tzdata openntpd wget && \
+# Update CentOS 7
+RUN yum update -y && yum upgrade -y
+
+# Install packages
+RUN yum install -y unzip wget curl git ca-certificates openssl-dev openssl libffi-dev python2 python2-dev py2-pip py2-yaml gcc musl-dev tzdata openntpd && \
 # Download and unpack Elastalert.
     wget -O elastalert.zip "${ELASTALERT_URL}" && \
     unzip elastalert.zip && \
@@ -77,13 +63,8 @@ RUN python setup.py install && \
     mkdir -p "${LOG_DIR}" && \
     mkdir -p /var/empty && \
 
-# Clean up.
-    apk del python2-dev && \
-    apk del musl-dev && \
-    apk del gcc && \
-    apk del openssl-dev && \
-    apk del libffi-dev && \
-    rm -rf /var/cache/apk/*
+# Clean CentOS 7
+RUN yum clean all
 
 # Copy the script used to launch the Elastalert when a container is started.
 COPY ./start-elastalert.sh /opt/
